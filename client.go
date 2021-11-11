@@ -531,16 +531,15 @@ func (client *gocloak) LoginClient(ctx context.Context, clientID, clientSecret, 
 	})
 }
 
-// LoginClientTokenExchange will exchange the presented token for a user's token
+// TokenExchangeInternal will exchange the presented token for a user's token in the specified client under the same realm
 // Requires Token-Exchange is enabled: https://www.keycloak.org/docs/latest/securing_apps/index.html#_token-exchange
-func (client *gocloak) LoginClientTokenExchange(ctx context.Context, clientID, clientSecret, realm, token, targetClient, targetUserID string, offline bool) (*JWT, error) {
+func (client *gocloak) TokenExchangeInternal(ctx context.Context, realm, token, targetClient, targetUserID string, offline bool) (*JWT, error) {
 	var offlineAccess *string = nil
 	if offline {
 		offlineAccess = StringP("offline_access")
 	}
 	return client.GetToken(ctx, realm, TokenOptions{
-		ClientID:           &clientID,
-		ClientSecret:       &clientSecret,
+		ClientID:           &targetClient,
 		GrantType:          StringP("urn:ietf:params:oauth:grant-type:token-exchange"),
 		SubjectToken:       &token,
 		RequestedTokenType: StringP("urn:ietf:params:oauth:token-type:refresh_token"),
