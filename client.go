@@ -531,24 +531,6 @@ func (client *gocloak) LoginClient(ctx context.Context, clientID, clientSecret, 
 	})
 }
 
-// TokenExchangeInternal will exchange the presented token for a user's token in the specified client under the same realm
-// Requires Token-Exchange is enabled: https://www.keycloak.org/docs/latest/securing_apps/index.html#_token-exchange
-func (client *gocloak) TokenExchangeInternal(ctx context.Context, realm, token, targetClient, targetUserID string, offline bool) (*JWT, error) {
-	var offlineAccess *string = nil
-	if offline {
-		offlineAccess = StringP("offline_access")
-	}
-	return client.GetToken(ctx, realm, TokenOptions{
-		ClientID:           &targetClient,
-		GrantType:          StringP("urn:ietf:params:oauth:grant-type:token-exchange"),
-		SubjectToken:       &token,
-		RequestedTokenType: StringP("urn:ietf:params:oauth:token-type:refresh_token"),
-		Audience:           &targetClient,
-		Scope:              offlineAccess,
-		RequestedSubject:   &targetUserID,
-	})
-}
-
 // LoginClientSignedJWT performs a login with client credentials and signed jwt claims
 func (client *gocloak) LoginClientSignedJWT(
 	ctx context.Context,
@@ -600,6 +582,36 @@ func (client *gocloak) LoginOtp(ctx context.Context, clientID, clientSecret, rea
 		Username:     &username,
 		Password:     &password,
 		Totp:         &totp,
+	})
+}
+
+// TokenExchangeInternal will exchange the presented token for a user's token in the specified client under the same realm
+// targetClientSecret is optional - if targetclient is confidential, it will be required
+// Requires Token-Exchange is enabled: https://www.keycloak.org/docs/latest/securing_apps/index.html#_token-exchange
+func (client *gocloak) TokenExchangeInternal(ctx context.Context,
+	realm,
+	token,
+	targetClient,
+	targetClientSecret,
+	targetUserID string,
+	offline bool) (*JWT, error) {
+	var offlineAccess *string = nil
+	var clientSecret *string = nil
+	if offline {
+		offlineAccess = StringP("offline_access")
+	}
+	if targetClientSecret != "" {
+		clientSecret = &targetClientSecret
+	}
+	return client.GetToken(ctx, realm, TokenOptions{
+		ClientID:           &targetClient,
+		ClientSecret:       clientSecret,
+		GrantType:          StringP("urn:ietf:params:oauth:grant-type:token-exchange"),
+		SubjectToken:       &token,
+		RequestedTokenType: StringP("urn:ietf:params:oauth:token-type:refresh_token"),
+		Audience:           &targetClient,
+		Scope:              offlineAccess,
+		RequestedSubject:   &targetUserID,
 	})
 }
 
